@@ -91,6 +91,7 @@ int SelectedPointsPublisher::processKeyEvent(QKeyEvent* event, rviz::RenderPanel
       rviz_selected_publisher_.publish(selected_points_);
     }
   }
+  return 0;
 }
 
 int SelectedPointsPublisher::processMouseEvent(rviz::ViewportMouseEvent& event)
@@ -152,7 +153,14 @@ int SelectedPointsPublisher::processSelectedArea()
   selected_points_.fields[3].count = 1;
 
   int i = 0;
-  while (model->hasIndex(i, 0))
+  float mean_x = 0.0;
+  float mean_y = 0.0;
+  float mean_z = 0.0;
+  float max_intensity = 0.0;
+  float min_intensity = 1e7;
+
+
+    while (model->hasIndex(i, 0))
   {
     selected_points_.row_step = (i + 1) * selected_points_.point_step;
     selected_points_.data.resize(selected_points_.row_step);
@@ -163,7 +171,11 @@ int SelectedPointsPublisher::processSelectedArea()
     rviz::VectorProperty* subchild = (rviz::VectorProperty*)child->childAt(0);
     Ogre::Vector3 point_data = subchild->getVector();
 
-    uint8_t* data_pointer = &selected_points_.data[0] + i * selected_points_.point_step;
+      mean_x += point_data.x;
+      mean_y += point_data.y;
+      mean_z += point_data.z;
+
+      uint8_t* data_pointer = &selected_points_.data[0] + i * selected_points_.point_step;
     *(float*)data_pointer = point_data.x;
     data_pointer += 4;
     *(float*)data_pointer = point_data.y;
@@ -182,7 +194,10 @@ int SelectedPointsPublisher::processSelectedArea()
       {
         rviz::FloatProperty* floatchild = (rviz::FloatProperty*)grandchild;
         float intensity = floatchild->getValue().toFloat();
-        *(float*)data_pointer = intensity;
+          max_intensity = (intensity>max_intensity)?intensity:max_intensity;
+          min_intensity = (intensity < min_intensity)?intensity:min_intensity;
+
+          *(float*)data_pointer = intensity;
         break;
       }
     }
@@ -192,6 +207,14 @@ int SelectedPointsPublisher::processSelectedArea()
   num_selected_points_ = i;
   ROS_INFO_STREAM_NAMED("SelectedPointsPublisher._processSelectedAreaAndFindPoints",
                         "Number of points in the selected area: " << num_selected_points_);
+  if(num_selected_points_ > 0){
+      mean_x /= num_selected_points_;
+      mean_y /= num_selected_points_;
+      mean_z /= num_selected_points_;
+
+      ROS_INFO("Select Points mean position [ %.3f %.3f %.3f ], intensity [ %.3f %.3f ]",mean_x,mean_y,mean_z, min_intensity, max_intensity );
+
+  }
 
   selected_points_.width = i;
   selected_points_.header.stamp = ros::Time::now();
