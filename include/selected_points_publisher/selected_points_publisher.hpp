@@ -30,9 +30,12 @@
 #include <QCursor>
 #include <QObject>
 #endif
+#include "visualization_msgs/MarkerArray.h"
 
 #include <sensor_msgs/PointCloud2.h>
 #include "rviz/default_plugin/tools/selection_tool.h"
+#include <vector>
+#include <array>
 
 namespace rviz_plugin_selected_points_publisher
 {
@@ -56,14 +59,24 @@ protected:
   ros::Publisher rviz_selected_publisher_;
   ros::Subscriber pointcloud_subscriber_;
 
-  std::string tf_frame_;
+    ros::Publisher marker_pub_;
+
+    std::string tf_frame_;
   std::string rviz_cloud_topic_;
-  std::string subscribed_cloud_topic_;
+    std::string rviz_marker_topic_;
+
+    std::string subscribed_cloud_topic_;
+    visualization_msgs::MarkerArray marker_array_msg;
+    visualization_msgs::Marker  marker_msg;
 
   sensor_msgs::PointCloud2 selected_points_;
+    std::vector<std::vector<std::array<float,4>> > points_vec_vec;
+    std::vector<std::array<float,4>> points_center_vec;
 
   bool selecting_;
   int num_selected_points_;
+
+  void dumpData();
 };
 }  // namespace rviz_plugin_selected_points_publisher
 
